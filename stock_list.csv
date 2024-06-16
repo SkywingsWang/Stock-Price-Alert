@@ -1,3 +1,5 @@
 Ticker,Threshold
-AAPL,2.0
-TSLA,-3.0
+NDVA,-5.0
+NFLX,-5.0
+MSFT,-5.0
+HOLO,100.0
