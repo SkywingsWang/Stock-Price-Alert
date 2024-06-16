@@ -3,7 +3,6 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import pandas as pd
-import time
 import os
 
 # 邮件配置
@@ -23,31 +22,41 @@ def send_email(subject, body):
 
     msg.attach(MIMEText(body, 'plain'))
 
-    with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-        server.starttls()
-        server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
-        text = msg.as_string()
-        server.sendmail(EMAIL_ADDRESS, EMAIL_ADDRESS, text)
+    try:
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+            server.starttls()
+            server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
+            text = msg.as_string()
+            server.sendmail(EMAIL_ADDRESS, EMAIL_ADDRESS, text)
+        print("Email sent successfully.")
+    except Exception as e:
+        print(f"Failed to send email: {e}")
+        raise  # Re-raise the exception to terminate the workflow
 
 def monitor_stocks():
-    for index, row in stock_list.iterrows():
-        ticker = row['Ticker']
-        threshold = row['Threshold']
-        
-        stock = yf.Ticker(ticker)
-        hist = stock.history(period="1d")
-        
-        if not hist.empty:
-            open_price = hist['Open'].iloc[0]
-            current_price = hist['Close'].iloc[0]
-            change = ((current_price - open_price) / open_price) * 100
+    try:
+        for index, row in stock_list.iterrows():
+            ticker = row['Ticker']
+            threshold = row['Threshold']
             
-            if abs(change) >= abs(threshold):
-                subject = f"Stock Alert: {ticker}"
-                body = f"The stock {ticker} has changed by {change:.2f}% today."
-                send_email(subject, body)
+            stock = yf.Ticker(ticker)
+            hist = stock.history(period="1d")
+            
+            if not hist.empty:
+                open_price = hist['Open'].iloc[0]
+                current_price = hist['Close'].iloc[0]
+                change = ((current_price - open_price) / open_price) * 100
+                
+                if abs(change) >= abs(threshold):
+                    subject = f"Stock Alert: {ticker}"
+                    body = f"The stock {ticker} has changed by {change:.2f}% today."
+                    send_email(subject, body)
+    except Exception as e:
+        # If there's an exception during the monitoring, send an error email
+        subject = "Stock Monitor Error"
+        body = f"An error occurred while monitoring stocks: {e}"
+        send_email(subject, body)
+        raise  # Re-raise the exception to terminate the workflow
 
 if __name__ == "__main__":
-    while True:
-        monitor_stocks()
-        time.sleep(3600)  # 每小时运行一次
+    monitor_stocks()
