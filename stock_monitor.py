@@ -38,8 +38,8 @@ def monitor_stocks():
         hist = stock.history(period="1d")
         
         if not hist.empty:
-            open_price = hist['Open'][0]
-            current_price = hist['Close'][0]
+            open_price = hist['Open'].iloc[0]
+            current_price = hist['Close'].iloc[0]
             change = ((current_price - open_price) / open_price) * 100
             
             if abs(change) >= abs(threshold):
