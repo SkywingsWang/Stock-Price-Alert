@@ -27,6 +27,7 @@ cd stock-price-alert
 - `EMAIL_PASSWORD`：发送邮件邮箱的密码（建议使用应用专用密码）
 - `SMTP_SERVER`：SMTP 服务器地址（例如 `smtp.gmail.com`）
 - `SMTP_PORT`：SMTP 服务器端口（例如 `587`）
+- `TO_EMAIL_ADDRESS`：接收邮件的邮箱地址
  
 ### 配置股票清单
  
