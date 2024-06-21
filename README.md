@@ -15,13 +15,13 @@ Stock Price Alert 是一个用于监控股票价格变化并通过电子邮件�
 ### 克隆仓库
  
 ```bash
-git clone https://github.com/your_username/stock-price-monitor.git
-cd stock-price-monitor
+git clone https://github.com/SkywingsWang/Stock-Price-Alert.git
+cd stock-price-alert
 ```
  
 ### 配置 GitHub Secrets
  
-在你的 GitHub 仓库中添加以下 Secrets：
+在你的 GitHub 仓库中添加以下 Action Secrets：
  
 - `EMAIL_ADDRESS`：发送邮件的邮箱地址
 - `EMAIL_PASSWORD`：发送邮件邮箱的密码（建议使用应用专用密码）
@@ -30,11 +30,11 @@ cd stock-price-monitor
  
 ### 配置股票清单
  
-根据需要修改 `stock_list.csv` 文件
+根据需要修改 `stock_list.csv` 文件，包括股票代码和变化幅度。如果程序报错，请检查这部分数据是否存在问题。
  
 ### 自定义策略
  
-你可以修改 `stock_monitor.py` 文件中的 `monitor_stocks` 函数，以实现自定义的监控策略。默认版本为使用前一天的收盘价作为基准计算价格变化。
+你可以修改 `stock_monitor.py` 文件中的 `monitor_stocks` 函数，以实现自定义的监控策略。默认为使用前一天的收盘价作为基准计算价格变化。
  
 ### 配置 GitHub Actions
  
