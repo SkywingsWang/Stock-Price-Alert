@@ -10,6 +10,7 @@ EMAIL_ADDRESS = os.getenv("EMAIL_ADDRESS")
 EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
 SMTP_SERVER = os.getenv("SMTP_SERVER")
 SMTP_PORT = int(os.getenv("SMTP_PORT"))
+TO_EMAIL_ADDRESS = os.getenv("TO_EMAIL_ADDRESS")
 
 # Read Stock Information CSV
 stock_list = pd.read_csv('stock_list.csv')  
@@ -17,7 +18,7 @@ stock_list = pd.read_csv('stock_list.csv')
 def send_email(subject, body):
     msg = MIMEMultipart()
     msg['From'] = EMAIL_ADDRESS
-    msg['To'] = EMAIL_ADDRESS
+    msg['To'] = TO_EMAIL_ADDRESS
     msg['Subject'] = subject
 
     msg.attach(MIMEText(body, 'plain'))
@@ -27,7 +28,7 @@ def send_email(subject, body):
             server.starttls()
             server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
             text = msg.as_string()
-            server.sendmail(EMAIL_ADDRESS, EMAIL_ADDRESS, text)
+            server.sendmail(EMAIL_ADDRESS, TO_EMAIL_ADDRESS, text)
         print("Email sent successfully.")
     except Exception as e:
         print(f"Failed to send email: {e}")
