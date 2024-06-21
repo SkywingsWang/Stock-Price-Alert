@@ -5,14 +5,14 @@ from email.mime.multipart import MIMEMultipart
 import pandas as pd
 import os
 
-# 邮件配置
+# Email Settings
 EMAIL_ADDRESS = os.getenv("EMAIL_ADDRESS")
 EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
 SMTP_SERVER = os.getenv("SMTP_SERVER")
 SMTP_PORT = int(os.getenv("SMTP_PORT"))
 
-# 读取股票清单
-stock_list = pd.read_csv('stock_list.csv')  # 假设csv文件中有两列: 'Ticker', 'Threshold'
+# Read Stock Information CSV
+stock_list = pd.read_csv('stock_list.csv')  
 
 def send_email(subject, body):
     msg = MIMEMultipart()
@@ -40,17 +40,18 @@ def monitor_stocks():
             threshold = row['Threshold']
             
             stock = yf.Ticker(ticker)
-            hist = stock.history(period="1d")
+            hist = stock.history(period="2d")
             
-            if not hist.empty:
-                open_price = hist['Open'].iloc[0]
-                current_price = hist['Close'].iloc[0]
-                change = ((current_price - open_price) / open_price) * 100
+            if not hist.empty and len(hist) >= 2:
+                prev_close = hist['Close'].iloc[0]
+                current_close = hist['Close'].iloc[1]
+                change = ((current_close - prev_close) / prev_close) * 100
                 
                 if abs(change) >= abs(threshold):
                     subject = f"Stock Alert: {ticker}"
                     body = f"The stock {ticker} has changed by {change:.2f}% today."
                     send_email(subject, body)
+                    
     except Exception as e:
         # If there's an exception during the monitoring, send an error email
         subject = "Stock Monitor Error"
