@@ -31,4 +31,5 @@ jobs:
         EMAIL_PASSWORD=${{ secrets.EMAIL_PASSWORD }} \
         SMTP_SERVER=${{ secrets.SMTP_SERVER }} \
         SMTP_PORT=${{ secrets.SMTP_PORT }} \
+        TO_EMAIL_ADDRESS=${{ secrets.TO_EMAIL_ADDRESS }} \
         python stock_monitor.py
