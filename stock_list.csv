@@ -1,5 +1,10 @@
 Ticker,Threshold
-MSFT,-5.0
-NVDA,-5.0
-NFLX,-5.0
 HOLO,100.0
+SBUX,3.5
+NIO,2.0
+AMZN,-5.0
+META,-3.0
+MSFT,-5.0
+NFLX,-5.0
+NVDA,-5.0
+TSLA,-5.0
