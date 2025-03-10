@@ -2,7 +2,8 @@ name: Stock Monitor
 
 on:
   schedule:
-    - cron: '0 * * * *'  # 每小时运行一次
+    - cron: "0 22 * * *"  # 每天北京时间 6:00 AM 运行
+  workflow_dispatch:  # 允许手动触发
   push:
     branches:
       - main
