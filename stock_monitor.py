@@ -48,9 +48,6 @@ def send_email(subject, body, body_html):
 def fetch_stock_data():
     today = datetime.now().strftime("%Y-%m-%d")  # 获取今天的日期
 
-    # 获取 30 天前的日期（转换为 Pandas Timestamp，并移除时区）
-    one_month_ago = pd.Timestamp.now().normalize() - timedelta(days=30)  # ✅ 优化计算方式
-
     # 纯文本格式
     report_text = f"📊 每日市场报告 - {today}\n\n"
     report_text += f"{'名称':<10} {'收盘价':<12} {'目标价':<8} {'1天涨跌':<10} {'1周涨跌':<10} {'1个月涨跌':<10}\n"
@@ -110,8 +107,8 @@ def fetch_stock_data():
                 print(f"⚠️ 无法获取 {ticker} 的数据")
                 continue
 
-            # 统一移除时区，避免比较错误
-            hist.index = hist.index.tz_localize(None)  # ✅ 确保无时区
+            # 统一移除时区
+            hist.index = hist.index.tz_localize(None)
 
             # 获取货币单位
             stock_info = stock.info
@@ -124,13 +121,9 @@ def fetch_stock_data():
             one_day_change = ((latest_close - hist['Close'].iloc[-2]) / hist['Close'].iloc[-2]) * 100 if len(hist) > 1 else 0
             one_week_change = ((latest_close - hist['Close'].iloc[-6]) / hist['Close'].iloc[-6]) * 100 if len(hist) > 6 else 0
 
-            # 修正 1 个月涨跌幅
-            hist_one_month = hist.loc[hist.index <= one_month_ago]
-            if not hist_one_month.empty and len(hist_one_month) > 0:
-                first_close = hist_one_month['Close'].iloc[-1]
-                one_month_change = ((latest_close - first_close) / first_close) * 100
-            else:
-                one_month_change = 0
+            # ✅ 取 1 个月数据里的第一个交易日
+            first_close = hist['Close'].iloc[0]
+            one_month_change = ((latest_close - first_close) / first_close) * 100 if first_close > 0 else 0
             
             # 颜色处理
             one_day_color = "positive" if one_day_change > 0 else "negative"
@@ -163,6 +156,7 @@ def fetch_stock_data():
     """
 
     return report_text, report_html
+
 
 if __name__ == "__main__":
     print("🚀 开始收集股票数据并发送邮件...")
