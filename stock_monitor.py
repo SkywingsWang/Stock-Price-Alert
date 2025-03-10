@@ -42,12 +42,16 @@ def send_email(subject, body):
 def fetch_stock_data():
     today = datetime.now().strftime("%Y-%m-%d")  # 获取今天的日期
     report = f"📊 **每日股票市场报告 - {today}**\n\n"
-    report += "Ticker | 货币 | 收盘价 | 1天涨跌幅 | 1周涨跌幅 | 1个月涨跌幅\n"
-    report += "------------------------------------------------------\n"
+    
+    # 表头
+    report += f"{'Ticker':<8} {'名称':<10} {'收盘价':<10} {'目标价':<10} {'货币':<5} {'1天涨跌':<10} {'1周涨跌':<10} {'1个月涨跌':<10}\n"
+    report += "-" * 90 + "\n"
 
     try:
         for index, row in stock_list.iterrows():
             ticker = row['Ticker']
+            title = row['Title']
+            target_price = row['Target Price']
             
             stock = yf.Ticker(ticker)
             hist = stock.history(period="1mo")  # 获取过去1个月的数据
@@ -70,7 +74,8 @@ def fetch_stock_data():
             first_close = hist.loc[first_day_of_month, "Close"]
             one_month_change = ((latest_close - first_close) / first_close) * 100 if first_close else 0
             
-            report += f"{ticker} | {currency} | {latest_close:.2f} {currency} | {one_day_change:.2f}% | {one_week_change:.2f}% | {one_month_change:.2f}%\n"
+            # 格式化数据，确保对齐
+            report += f"{ticker:<8} {title:<10} {latest_close:>8.2f} {currency:<5} {target_price:>8.2f} {currency:<5} {one_day_change:>8.2f}% {one_week_change:>8.2f}% {one_month_change:>8.2f}%\n"
 
     except Exception as e:
         report += f"\n❌ 数据获取出错: {e}"
