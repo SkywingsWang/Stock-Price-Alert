@@ -1,22 +1,4 @@
-import yfinance as yf
-import smtplib
-import requests
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from email.mime.image import MIMEImage
-import pandas as pd
-import os
-from datetime import datetime
-
-# Email Settings
-EMAIL_ADDRESS = os.getenv("EMAIL_ADDRESS")
-EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
-SMTP_SERVER = os.getenv("SMTP_SERVER")
-SMTP_PORT = int(os.getenv("SMTP_PORT"))
-TO_EMAIL_ADDRESS = os.getenv("TO_EMAIL_ADDRESS")
-
-# Read Stock Information CSV
-stock_list = pd.read_csv('stock_list.csv')
+import base64
 
 def send_email(subject, body, body_html):
     print(f"🔍 发送邮件 - 题目: {subject}")
@@ -28,27 +10,6 @@ def send_email(subject, body, body_html):
 
     msg.attach(MIMEText(body, "plain"))  # 纯文本
     msg.attach(MIMEText(body_html, "html"))  # HTML
-
-    # 嵌入图片
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-    }
-
-    for index, row in stock_list.iterrows():
-        stockcharts_ticker = row['StockCharts Ticker']
-        if stockcharts_ticker and stockcharts_ticker != "N/A":
-            chart_url = f"https://stockcharts.com/c-sc/sc?s={stockcharts_ticker}&p=D&b=40&g=0&i=0"
-            try:
-                response = requests.get(chart_url, headers=headers)
-                if response.status_code == 200:
-                    img = MIMEImage(response.content)
-                    img.add_header('Content-ID', f'<{stockcharts_ticker}>')
-                    msg.attach(img)
-                    print(f"✅ 图片嵌入成功: {stockcharts_ticker}")
-                else:
-                    print(f"❌ 图片下载失败: {stockcharts_ticker}, 状态码: {response.status_code}")
-            except Exception as e:
-                print(f"❌ 图片下载时出错: {stockcharts_ticker}, 错误: {e}")
 
     try:
         with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
@@ -153,18 +114,33 @@ def fetch_stock_data():
         <h3>📈 市场趋势图</h3>
     """
 
-    # 使用 `StockCharts Ticker` 生成 URL 并嵌入图片
+    # 使用 Base64 嵌入图片
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+    }
+
     for index, row in stock_list.iterrows():
         stockcharts_ticker = row['StockCharts Ticker']
         title = row['Title']
         
         if stockcharts_ticker and stockcharts_ticker != "N/A":
-            report_html += f"""
-            <div style="text-align: center; margin: 20px 0;">
-                <h4>{title} ({stockcharts_ticker})</h4>
-                <img src="cid:{stockcharts_ticker}" alt="{title} Chart" style="width: 80%; max-width: 800px; display: block; margin: auto;">
-            </div>
-            """
+            chart_url = f"https://stockcharts.com/c-sc/sc?s={stockcharts_ticker}&p=D&b=40&g=0&i=0"
+            try:
+                response = requests.get(chart_url, headers=headers)
+                if response.status_code == 200:
+                    # 将图片转换为 Base64
+                    img_base64 = base64.b64encode(response.content).decode("utf-8")
+                    report_html += f"""
+                    <div style="text-align: center; margin: 20px 0;">
+                        <h4>{title} ({stockcharts_ticker})</h4>
+                        <img src="data:image/png;base64,{img_base64}" alt="{title} Chart" style="width: 80%; max-width: 800px; display: block; margin: auto;">
+                    </div>
+                    """
+                    print(f"✅ 图片嵌入成功: {stockcharts_ticker}")
+                else:
+                    print(f"❌ 图片下载失败: {stockcharts_ticker}, 状态码: {response.status_code}")
+            except Exception as e:
+                print(f"❌ 图片下载时出错: {stockcharts_ticker}, 错误: {e}")
 
     report_html += """
     </body>
@@ -172,9 +148,3 @@ def fetch_stock_data():
     """
     
     return report_html
-
-if __name__ == "__main__":
-    print("🚀 开始收集股票数据并发送邮件...")
-    stock_report_html = fetch_stock_data()
-    subject = f"📈 每日股票市场报告 - {datetime.now().strftime('%Y-%m-%d')}"
-    send_email(subject, "请查看 HTML 邮件", stock_report_html)
