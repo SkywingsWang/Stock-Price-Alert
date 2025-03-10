@@ -49,9 +49,9 @@ def fetch_stock_data():
     today = datetime.now().strftime("%Y-%m-%d")  # 获取今天的日期
 
     # 邮件文本格式
-    report_text = f"📊 每日股票市场报告 - {today}\n\n"
-    report_text += f"{'Ticker':<8} {'名称':<10} {'收盘价':<10} {'目标价':<10} {'货币':<5} {'1天涨跌':<10} {'1周涨跌':<10} {'1个月涨跌':<10}\n"
-    report_text += "-" * 90 + "\n"
+    report_text = f"📊 每日市场报告 - {today}\n\n"
+    report_text += f"{'名称':<10} {'收盘价':<12} {'目标价':<8} {'1天涨跌':<10} {'1周涨跌':<10} {'1个月涨跌':<10}\n"
+    report_text += "-" * 80 + "\n"
 
     # HTML 邮件表头
     report_html = f"""
@@ -85,11 +85,9 @@ def fetch_stock_data():
         <h2>📊 每日股票市场报告 - {today}</h2>
         <table>
             <tr>
-                <th>Ticker</th>
                 <th>名称</th>
                 <th>收盘价</th>
                 <th>目标价</th>
-                <th>货币</th>
                 <th>1天涨跌</th>
                 <th>1周涨跌</th>
                 <th>1个月涨跌</th>
@@ -115,6 +113,8 @@ def fetch_stock_data():
             
             # 获取收盘价
             latest_close = hist['Close'].iloc[-1]
+            latest_close_str = f"{latest_close:.2f} {currency}"  # 让收盘价包含货币单位
+
             one_day_change = ((latest_close - hist['Close'].iloc[-2]) / hist['Close'].iloc[-2]) * 100 if len(hist) > 1 else 0
             one_week_change = ((latest_close - hist['Close'].iloc[-6]) / hist['Close'].iloc[-6]) * 100 if len(hist) > 6 else 0
             
@@ -123,22 +123,20 @@ def fetch_stock_data():
             first_close = hist.loc[first_day_of_month, "Close"]
             one_month_change = ((latest_close - first_close) / first_close) * 100 if first_close else 0
             
-            # 颜色处理
-            one_day_color = "positive" if one_day_change >= 0 else "negative"
-            one_week_color = "positive" if one_week_change >= 0 else "negative"
-            one_month_color = "positive" if one_month_change >= 0 else "negative"
+            # 颜色处理（上涨为红色，下降为绿色）
+            one_day_color = "positive" if one_day_change > 0 else "negative"
+            one_week_color = "positive" if one_week_change > 0 else "negative"
+            one_month_color = "positive" if one_month_change > 0 else "negative"
 
             # 纯文本格式数据
-            report_text += f"{ticker:<8} {title:<10} {latest_close:>8.2f} {currency:<5} {target_price:>8.2f} {currency:<5} {one_day_change:>8.2f}% {one_week_change:>8.2f}% {one_month_change:>8.2f}%\n"
+            report_text += f"{title:<10} {latest_close_str:<12} {target_price:>8.2f} {one_day_change:>8.2f}% {one_week_change:>8.2f}% {one_month_change:>8.2f}%\n"
 
             # HTML 表格格式
             report_html += f"""
             <tr>
-                <td>{ticker}</td>
                 <td>{title}</td>
-                <td>{latest_close:.2f} {currency}</td>
-                <td>{target_price:.2f} {currency}</td>
-                <td>{currency}</td>
+                <td>{latest_close_str}</td>
+                <td>{target_price:.2f}</td>
                 <td class="{one_day_color}">{one_day_change:.2f}%</td>
                 <td class="{one_week_color}">{one_week_change:.2f}%</td>
                 <td class="{one_month_color}">{one_month_change:.2f}%</td>
@@ -147,7 +145,7 @@ def fetch_stock_data():
 
     except Exception as e:
         report_text += f"\n❌ 数据获取出错: {e}"
-        report_html += f"<tr><td colspan='8'>❌ 数据获取出错: {e}</td></tr>"
+        report_html += f"<tr><td colspan='6'>❌ 数据获取出错: {e}</td></tr>"
 
     report_html += """
         </table>
