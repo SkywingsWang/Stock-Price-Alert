@@ -1,58 +1,10 @@
-import yfinance as yf
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-import pandas as pd
-import os
-import datetime
-from datetime import datetime
-
-# Email Settings
-EMAIL_ADDRESS = os.getenv("EMAIL_ADDRESS")
-EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
-SMTP_SERVER = os.getenv("SMTP_SERVER")
-SMTP_PORT = int(os.getenv("SMTP_PORT"))
-TO_EMAIL_ADDRESS = os.getenv("TO_EMAIL_ADDRESS")
-
-# Read Stock Information CSV
-stock_list = pd.read_csv('stock_list.csv')
-
-def send_email(subject, body, body_html):
-    print(f"🔍 发送邮件 - 主题: {subject}")
-    print(f"📧 发件人: {EMAIL_ADDRESS}")
-    print(f"📧 收件人: {TO_EMAIL_ADDRESS}")
-    print(f"📡 SMTP 服务器: {SMTP_SERVER}:{SMTP_PORT}")
-
-    msg = MIMEMultipart("alternative")
-    msg['From'] = EMAIL_ADDRESS
-    msg['To'] = TO_EMAIL_ADDRESS
-    msg['Subject'] = subject
-
-    # 添加纯文本格式（备用）
-    text_part = MIMEText(body, "plain")
-    msg.attach(text_part)
-
-    # 添加 HTML 格式
-    html_part = MIMEText(body_html, "html")
-    msg.attach(html_part)
-
-    try:
-        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-            server.starttls()
-            server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
-            server.sendmail(EMAIL_ADDRESS, TO_EMAIL_ADDRESS, msg.as_string())
-        print("✅ 邮件发送成功")
-    except Exception as e:
-        print(f"❌ 邮件发送失败: {e}")
-        raise  # 终止任务
+from datetime import datetime, timedelta  # ✅ 直接导入 timedelta
 
 def fetch_stock_data():
     today = datetime.now().strftime("%Y-%m-%d")  # 获取今天的日期
 
-    # 邮件文本格式
-    report_text = f"📊 每日市场报告 - {today}\n\n"
-    report_text += f"{'名称':<10} {'收盘价':<12} {'目标价':<8} {'1天涨跌':<10} {'1周涨跌':<10} {'1个月涨跌':<10}\n"
-    report_text += "-" * 80 + "\n"
+    # 获取 30 天前的日期
+    one_month_ago = datetime.today() - timedelta(days=30)  # ✅ 正确使用 timedelta
 
     # HTML 邮件表头
     report_html = f"""
@@ -120,9 +72,7 @@ def fetch_stock_data():
             one_week_change = ((latest_close - hist['Close'].iloc[-6]) / hist['Close'].iloc[-6]) * 100 if len(hist) > 6 else 0
             
             # 修正1个月涨跌幅的计算方式
-            one_month_ago = datetime.today() - datetime.timedelta(days=30)
-            hist_one_month = hist[hist.index <= one_month_ago]
-
+            hist_one_month = hist[hist.index <= one_month_ago]  # ✅ 取 30 天前的最近交易日
             if not hist_one_month.empty:
                 first_close = hist_one_month['Close'].iloc[-1]  # 取 30 天前最近的交易日收盘价
                 one_month_change = ((latest_close - first_close) / first_close) * 100
@@ -133,9 +83,6 @@ def fetch_stock_data():
             one_day_color = "positive" if one_day_change > 0 else "negative"
             one_week_color = "positive" if one_week_change > 0 else "negative"
             one_month_color = "positive" if one_month_change > 0 else "negative"
-
-            # 纯文本格式数据
-            report_text += f"{title:<10} {latest_close_str:<12} {target_price:>8.2f} {one_day_change:>8.2f}% {one_week_change:>8.2f}% {one_month_change:>8.2f}%\n"
 
             # HTML 表格格式
             report_html += f"""
@@ -150,7 +97,6 @@ def fetch_stock_data():
             """
 
     except Exception as e:
-        report_text += f"\n❌ 数据获取出错: {e}"
         report_html += f"<tr><td colspan='6'>❌ 数据获取出错: {e}</td></tr>"
 
     report_html += """
@@ -159,10 +105,4 @@ def fetch_stock_data():
     </html>
     """
 
-    return report_text, report_html
-
-if __name__ == "__main__":
-    print("🚀 开始收集股票数据并发送邮件...")
-    stock_report_text, stock_report_html = fetch_stock_data()
-    subject = f"📈 每日股票市场报告 - {datetime.now().strftime('%Y-%m-%d')}"
-    send_email(subject, stock_report_text, stock_report_html)
+    return report_html
