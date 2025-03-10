@@ -48,42 +48,17 @@ def fetch_stock_data():
     <html>
     <head>
         <style>
-            body {{ font-family: Arial, sans-serif; }}
-            table {{ width: 100%; border-collapse: collapse; margin-bottom: 30px; }}
-            th, td {{ padding: 15px; text-align: center; border-bottom: 1px solid #ddd; font-size: 28px; }}
-            th {{ background-color: #f4f4f4; font-size: 30px; }}
+            body {{ font-family: Arial, sans-serif; font-size: 18px; }}
+            table {{ width: 100%; border-collapse: collapse; }}
+            th, td {{ padding: 14px; text-align: center; border-bottom: 1px solid #ddd; font-size: 22px; }}
+            th {{ background-color: #f4f4f4; font-size: 24px; font-weight: bold; }}
             .positive {{ color: red; font-weight: bold; }}
             .negative {{ color: green; font-weight: bold; }}
-            .chart-container {{ 
-                display: flex; 
-                align-items: flex-start; 
-                margin: 20px 0; 
-                padding: 10px; 
-            }}
-            .chart-container img {{ 
-                width: 60%; 
-                max-width: 800px; 
-                margin-right: 20px; 
-            }}
-            .chart-container .data {{ 
-                width: 40%; 
-                padding-left: 20px; 
-                font-size: 16px; 
-            }}
-            .data h4 {{ 
-                margin-top: 0; 
-                font-size: 18px; 
-                color: #333; 
-            }}
-            .data .one-day-change {{ 
-                font-size: 20px; 
-                font-weight: bold; 
-                margin-bottom: 10px; 
-            }}
-            .data p {{ 
-                margin: 8px 0; 
-                color: #555; 
-            }}
+            .highlight {{ font-size: 28px; font-weight: bold; }} /* 强调 1 天涨幅 */
+            .index-container {{ display: flex; align-items: center; margin: 20px 0; }}
+            .index-image {{ flex: 1; text-align: center; }}
+            .index-data {{ flex: 1; padding-left: 20px; font-size: 22px; }}
+            img {{ width: 90%; max-width: 600px; border: 1px solid #ccc; }}
         </style>
     </head>
     <body>
@@ -99,13 +74,13 @@ def fetch_stock_data():
                 <th>3个月涨跌</th>
             </tr>
     """
-    
+
     for index, row in stock_list.iterrows():
         ticker = row['Ticker']
         title = row['Title']
         stockcharts_ticker = row['StockCharts Ticker']
 
-        # 处理 target_price 为空的情况
+        # 处理 `target_price` 为空的情况
         target_price = row['Target Price']
         try:
             target_price = float(target_price) if target_price not in ["N/A", ""] else None
@@ -143,7 +118,7 @@ def fetch_stock_data():
         def color_class(value):
             return "positive" if value > 0 else "negative"
 
-        # 处理 target_price 为空的情况
+        # 处理 `target_price` 为空的情况
         target_price_str = f"{target_price:.2f}" if target_price is not None else "N/A"
 
         report_html += f"""
@@ -151,13 +126,13 @@ def fetch_stock_data():
             <td>{title}</td>
             <td>{latest_close_str}</td>
             <td>{target_price_str}</td>
-            <td class="{color_class(one_day_change)}"><b>{one_day_change:.2f}%</b></td>
+            <td class="{color_class(one_day_change)} highlight">{one_day_change:.2f}%</td>
             <td class="{color_class(one_week_change)}">{one_week_change:.2f}%</td>
             <td class="{color_class(one_month_change)}">{one_month_change:.2f}%</td>
             <td class="{color_class(three_month_change)}">{three_month_change:.2f}%</td>
         </tr>
         """
-    
+
     report_html += """
         </table>
         <h3>📈 市场趋势图</h3>
@@ -180,14 +155,18 @@ def fetch_stock_data():
                     # 将图片转换为 Base64
                     img_base64 = base64.b64encode(response.content).decode("utf-8")
                     report_html += f"""
-                    <div class="chart-container">
-                        <img src="data:image/png;base64,{img_base64}" alt="{title} Chart">
-                        <div class="data">
+                    <div class="index-container">
+                        <div class="index-image">
                             <h4>{title} ({stockcharts_ticker})</h4>
-                            <p class="one-day-change {color_class(one_day_change)}">1天涨跌: {one_day_change:.2f}%</p>
-                            <p>1周涨跌: {one_week_change:.2f}%</p>
-                            <p>1个月涨跌: {one_month_change:.2f}%</p>
-                            <p>3个月涨跌: {three_month_change:.2f}%</p>
+                            <img src="data:image/png;base64,{img_base64}" alt="{title} Chart">
+                        </div>
+                        <div class="index-data">
+                            <p><b>收盘价：</b> {latest_close_str}</p>
+                            <p><b>目标价：</b> {target_price_str}</p>
+                            <p><b>1天涨跌：</b> <span class="{color_class(one_day_change)} highlight">{one_day_change:.2f}%</span></p>
+                            <p><b>1周涨跌：</b> <span class="{color_class(one_week_change)}">{one_week_change:.2f}%</span></p>
+                            <p><b>1个月涨跌：</b> <span class="{color_class(one_month_change)}">{one_month_change:.2f}%</span></p>
+                            <p><b>3个月涨跌：</b> <span class="{color_class(three_month_change)}">{three_month_change:.2f}%</span></p>
                         </div>
                     </div>
                     """
@@ -201,8 +180,9 @@ def fetch_stock_data():
     </body>
     </html>
     """
-    
+
     return report_html
+
 
 if __name__ == "__main__":
     print("🚀 开始收集股票数据并发送邮件...")
