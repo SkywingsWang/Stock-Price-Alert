@@ -71,7 +71,7 @@ def fetch_stock_data():
         ticker = row['Ticker']
         title = row['Title']
         target_price = row['Target Price']
-        stock_type = row['Type'].strip().lower()  # 读取 "Stock" 或 "Forex"
+        stock_type = row['Type'].strip().lower()
 
         stock = yf.Ticker(ticker)
         stock_info = stock.info
@@ -81,22 +81,30 @@ def fetch_stock_data():
         latest_close = stock_info.get("regularMarketPrice", 0)
         latest_close_str = f"{latest_close:.2f} {currency}"
 
-        # 直接从 Yahoo Finance 获取数据
+        # 直接从 Yahoo Finance 获取 1 天涨跌幅
         one_day_change = stock_info.get("regularMarketChangePercent", 0)
 
         # 计算 1 周、1 个月、3 个月涨跌幅
-        def calculate_change(history_data, period):
-            if len(history_data) > period:
-                old_price = history_data["Close"].iloc[0]
-                return ((latest_close - old_price) / old_price) * 100
+        def calculate_change(hist, period_name):
+            if not hist.empty:
+                first_valid_date = hist.first_valid_index()
+                if first_valid_date is not None:
+                    first_close = hist.loc[first_valid_date, "Close"]
+                    return ((latest_close - first_close) / first_close) * 100
             return 0
 
-        one_week_change = calculate_change(stock.history(period="7d"), 7)
-        one_month_change = calculate_change(stock.history(period="1mo"), 20)  # 大约20个交易日
+        # 获取历史数据，确保数据完整
+        hist_7d = stock.history(period="7d").asfreq('B')  # 只获取交易日
+        hist_1mo = stock.history(period="1mo").asfreq('B')  # 1 个月
+        hist_3mo = stock.history(period="3mo").asfreq('B')  # 3 个月
+
+        one_week_change = calculate_change(hist_7d, "7d")
+        one_month_change = calculate_change(hist_1mo, "1mo")
+
         if stock_type == "stock":
             three_month_change = stock_info.get("fiftyDayAverageChangePercent", 0)  # 股票指数用 Yahoo Finance 数据
         else:
-            three_month_change = calculate_change(stock.history(period="3mo"), 60)  # 货币对计算 3 个月涨跌幅
+            three_month_change = calculate_change(hist_3mo, "3mo")  # 货币对计算 3 个月涨跌幅
 
         # 颜色
         def color_class(value):
