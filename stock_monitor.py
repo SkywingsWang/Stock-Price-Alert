@@ -49,16 +49,45 @@ def fetch_stock_data():
     <head>
         <style>
             body {{ font-family: Arial, sans-serif; font-size: 18px; }}
-            table {{ width: 100%; border-collapse: collapse; }}
-            th, td {{ padding: 12px; text-align: center; border-bottom: 1px solid #ddd; font-size: 20px; }}
-            th {{ background-color: #f4f4f4; font-size: 22px; }}
+            table {{ width: 100%; border-collapse: collapse; margin-bottom: 30px; }}
+            th, td {{ padding: 15px; text-align: center; border-bottom: 1px solid #ddd; font-size: 24px; }}
+            th {{ background-color: #f4f4f4; font-size: 26px; }}
             .positive {{ color: red; font-weight: bold; }}
             .negative {{ color: green; font-weight: bold; }}
-            .chart-container {{ display: flex; align-items: center; margin: 20px 0; }}
-            .chart-container img {{ width: 50%; max-width: 600px; }}
-            .chart-container .data {{ width: 50%; padding-left: 20px; font-size: 18px; }}
-            .data h4 {{ margin-top: 0; }}
-            .data .one-day-change {{ font-size: 24px; font-weight: bold; }}
+            .chart-container {{ 
+                display: flex; 
+                align-items: center; 
+                margin: 30px 0; 
+                padding: 20px; 
+                background-color: #f9f9f9; 
+                border-radius: 10px; 
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); 
+            }}
+            .chart-container img {{ 
+                width: 50%; 
+                max-width: 600px; 
+                border-radius: 10px; 
+                margin-right: 20px; 
+            }}
+            .chart-container .data {{ 
+                width: 50%; 
+                padding-left: 20px; 
+                font-size: 20px; 
+            }}
+            .data h4 {{ 
+                margin-top: 0; 
+                font-size: 24px; 
+                color: #333; 
+            }}
+            .data .one-day-change {{ 
+                font-size: 28px; 
+                font-weight: bold; 
+                margin-bottom: 10px; 
+            }}
+            .data p {{ 
+                margin: 8px 0; 
+                color: #555; 
+            }}
         </style>
     </head>
     <body>
