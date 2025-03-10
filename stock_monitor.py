@@ -74,10 +74,10 @@ def fetch_stock_data():
                 background-color: #f4f4f4;
             }}
             .positive {{
-                color: green;
+                color: red;
             }}
             .negative {{
-                color: red;
+                color: green;
             }}
         </style>
     </head>
