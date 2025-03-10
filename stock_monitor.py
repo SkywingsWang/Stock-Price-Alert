@@ -4,8 +4,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import pandas as pd
 import os
-import datetime
-from datetime import datetime
+from datetime import datetime, timedelta  # ✅ 正确导入
 
 # Email Settings
 EMAIL_ADDRESS = os.getenv("EMAIL_ADDRESS")
@@ -46,13 +45,11 @@ def send_email(subject, body, body_html):
         print(f"❌ 邮件发送失败: {e}")
         raise  # 终止任务
 
-from datetime import datetime, timedelta  # ✅ 直接导入 timedelta
-
 def fetch_stock_data():
     today = datetime.now().strftime("%Y-%m-%d")  # 获取今天的日期
 
-    # 获取 30 天前的日期
-    one_month_ago = datetime.today() - timedelta(days=30)
+    # 获取 30 天前的日期（转换为 Pandas Timestamp，并移除时区）
+    one_month_ago = pd.Timestamp.now().normalize() - timedelta(days=30)  # ✅ 优化计算方式
 
     # 纯文本格式
     report_text = f"📊 每日市场报告 - {today}\n\n"
@@ -107,12 +104,15 @@ def fetch_stock_data():
             target_price = row['Target Price']
             
             stock = yf.Ticker(ticker)
-            hist = stock.history(period="1mo")
-            
+            hist = stock.history(period="1mo")  # 获取过去1个月的数据
+
             if hist.empty or len(hist) < 2:
                 print(f"⚠️ 无法获取 {ticker} 的数据")
                 continue
-            
+
+            # 统一移除时区，避免比较错误
+            hist.index = hist.index.tz_localize(None)  # ✅ 确保无时区
+
             # 获取货币单位
             stock_info = stock.info
             currency = stock_info.get("currency", "N/A")
@@ -125,8 +125,8 @@ def fetch_stock_data():
             one_week_change = ((latest_close - hist['Close'].iloc[-6]) / hist['Close'].iloc[-6]) * 100 if len(hist) > 6 else 0
 
             # 修正 1 个月涨跌幅
-            hist_one_month = hist[hist.index <= one_month_ago]
-            if not hist_one_month.empty:
+            hist_one_month = hist.loc[hist.index <= one_month_ago]
+            if not hist_one_month.empty and len(hist_one_month) > 0:
                 first_close = hist_one_month['Close'].iloc[-1]
                 one_month_change = ((latest_close - first_close) / first_close) * 100
             else:
@@ -162,13 +162,10 @@ def fetch_stock_data():
     </html>
     """
 
-    # ✅ 现在返回两个值：纯文本 和 HTML
     return report_text, report_html
-
-
 
 if __name__ == "__main__":
     print("🚀 开始收集股票数据并发送邮件...")
-    stock_report_text, stock_report_html = fetch_stock_data()  # ✅ 这里解包两个返回值
+    stock_report_text, stock_report_html = fetch_stock_data()
     subject = f"📈 每日股票市场报告 - {datetime.now().strftime('%Y-%m-%d')}"
-    send_email(subject, stock_report_text, stock_report_html)  # ✅ 传入两个值
+    send_email(subject, stock_report_text, stock_report_html)
