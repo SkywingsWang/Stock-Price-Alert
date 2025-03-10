@@ -4,6 +4,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import pandas as pd
 import os
+import datetime
 from datetime import datetime
 
 # Email Settings
@@ -119,9 +120,14 @@ def fetch_stock_data():
             one_week_change = ((latest_close - hist['Close'].iloc[-6]) / hist['Close'].iloc[-6]) * 100 if len(hist) > 6 else 0
             
             # 修正1个月涨跌幅的计算方式
-            first_day_of_month = hist.index[0]  # 获取数据的第一个交易日
-            first_close = hist.loc[first_day_of_month, "Close"]
-            one_month_change = ((latest_close - first_close) / first_close) * 100 if first_close else 0
+            one_month_ago = datetime.today() - datetime.timedelta(days=30)
+            hist_one_month = hist[hist.index <= one_month_ago]
+
+            if not hist_one_month.empty:
+                first_close = hist_one_month['Close'].iloc[-1]  # 取 30 天前最近的交易日收盘价
+                one_month_change = ((latest_close - first_close) / first_close) * 100
+            else:
+                one_month_change = 0  # 如果没有数据，默认为 0
             
             # 颜色处理（上涨为红色，下降为绿色）
             one_day_color = "positive" if one_day_change > 0 else "negative"
