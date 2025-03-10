@@ -1,8 +1,8 @@
-Ticker,Title,Target Price
-^IXIC,纳斯达克,17000
-GC=F,现货黄金,2800
-^STOXX50E,欧洲斯托克50,
-^GDAXI,德国DAX30,
-CNYJPY=X,人民币兑日元
-USDJPY=X,美元兑日元
-USDCNY=X,美元对人民币
+Ticker,Title,Target Price,Type
+^IXIC,纳斯达克,17000,Stock
+GC=F,现货黄金,2800,Stock
+^STOXX50E,欧洲斯托克50,N/A,Stock
+^GDAXI,德国DAX30,N/A,Stock
+CNYJPY=X,人民币兑日元,N/A,Forex
+USDJPY=X,美元兑日元,N/A,Forex
+USDCNY=X,美元对人民币,N/A,Forex
