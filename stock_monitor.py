@@ -1,7 +1,9 @@
 import yfinance as yf
 import smtplib
+import requests
 from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart 
+from email.mime.multipart import MIMEMultipart
+from email.mime.image import MIMEImage
 import pandas as pd
 import os
 from datetime import datetime
@@ -26,6 +28,17 @@ def send_email(subject, body, body_html):
 
     msg.attach(MIMEText(body, "plain"))  # 纯文本
     msg.attach(MIMEText(body_html, "html"))  # HTML
+
+    # 嵌入图片
+    for index, row in stock_list.iterrows():
+        stockcharts_ticker = row['StockCharts Ticker']
+        if stockcharts_ticker and stockcharts_ticker != "N/A":
+            chart_url = f"https://stockcharts.com/c-sc/sc?s={stockcharts_ticker}&p=D&b=40&g=0&i=0"
+            response = requests.get(chart_url)
+            if response.status_code == 200:
+                img = MIMEImage(response.content)
+                img.add_header('Content-ID', f'<{stockcharts_ticker}>')
+                msg.attach(img)
 
     try:
         with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
@@ -72,7 +85,7 @@ def fetch_stock_data():
         title = row['Title']
         stockcharts_ticker = row['StockCharts Ticker']
 
-        # **🔹 处理 `target_price` 为空的情况**
+        # 处理 `target_price` 为空的情况
         target_price = row['Target Price']
         try:
             target_price = float(target_price) if target_price not in ["N/A", ""] else None
@@ -110,7 +123,7 @@ def fetch_stock_data():
         def color_class(value):
             return "positive" if value > 0 else "negative"
 
-        # **🔹 处理 `target_price` 为空的情况**
+        # 处理 `target_price` 为空的情况
         target_price_str = f"{target_price:.2f}" if target_price is not None else "N/A"
 
         report_html += f"""
@@ -130,17 +143,16 @@ def fetch_stock_data():
         <h3>📈 市场趋势图</h3>
     """
 
-    # ✅ **正确使用 `StockCharts Ticker` 生成 URL**
+    # 使用 `StockCharts Ticker` 生成 URL 并嵌入图片
     for index, row in stock_list.iterrows():
         stockcharts_ticker = row['StockCharts Ticker']
         title = row['Title']
         
         if stockcharts_ticker and stockcharts_ticker != "N/A":
-            chart_url = f"https://stockcharts.com/c-sc/sc?s={stockcharts_ticker}&p=D&b=40&g=0&i=0"
             report_html += f"""
             <div style="text-align: center; margin: 20px 0;">
                 <h4>{title} ({stockcharts_ticker})</h4>
-                <img src="{chart_url}" alt="{title} Chart" style="width: 80%; max-width: 800px; display: block; margin: auto;">
+                <img src="cid:{stockcharts_ticker}" alt="{title} Chart" style="width: 80%; max-width: 800px; display: block; margin: auto;">
             </div>
             """
 
