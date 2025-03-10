@@ -1,7 +1,7 @@
 import yfinance as yf
 import smtplib
 from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+from email.multipart import MIMEMultipart
 import pandas as pd
 import os
 from datetime import datetime
@@ -70,8 +70,14 @@ def fetch_stock_data():
     for index, row in stock_list.iterrows():
         ticker = row['Ticker']
         title = row['Title']
-        target_price = row['Target Price']
         stockcharts_ticker = row['StockCharts Ticker']
+
+        # **🔹 处理 `target_price` 为空的情况**
+        target_price = row['Target Price']
+        try:
+            target_price = float(target_price) if target_price not in ["N/A", ""] else None
+        except ValueError:
+            target_price = None
 
         stock = yf.Ticker(ticker)
         stock_info = stock.info
@@ -104,11 +110,14 @@ def fetch_stock_data():
         def color_class(value):
             return "positive" if value > 0 else "negative"
 
+        # **🔹 处理 `target_price` 为空的情况**
+        target_price_str = f"{target_price:.2f}" if target_price is not None else "N/A"
+
         report_html += f"""
         <tr>
             <td>{title}</td>
             <td>{latest_close_str}</td>
-            <td>{target_price:.2f}</td>
+            <td>{target_price_str}</td>
             <td class="{color_class(one_day_change)}"><b>{one_day_change:.2f}%</b></td>
             <td class="{color_class(one_week_change)}">{one_week_change:.2f}%</td>
             <td class="{color_class(one_month_change)}">{one_month_change:.2f}%</td>
