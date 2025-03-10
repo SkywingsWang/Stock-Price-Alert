@@ -24,10 +24,8 @@ def send_email(subject, body, body_html):
     msg['To'] = TO_EMAIL_ADDRESS
     msg['Subject'] = subject
 
-    # 添加纯文本格式（备用）
-    msg.attach(MIMEText(body, "plain"))
-    # 添加 HTML 格式
-    msg.attach(MIMEText(body_html, "html"))
+    msg.attach(MIMEText(body, "plain"))  # 纯文本
+    msg.attach(MIMEText(body_html, "html"))  # HTML
 
     try:
         with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
@@ -40,39 +38,19 @@ def send_email(subject, body, body_html):
         raise
 
 def fetch_stock_data():
-    today = datetime.now().strftime("%Y-%m-%d")  # 获取今天的日期
+    today = datetime.now().strftime("%Y-%m-%d")
 
-    # 纯文本格式
-    report_text = f"📊 每日市场报告 - {today}\n\n"
-    report_text += f"{'名称':<12} {'收盘价':<12} {'目标价':<8} {'1天涨跌':<10} {'1周涨跌':<10} {'1个月涨跌':<10} {'3个月涨跌':<10}\n"
-    report_text += "-" * 100 + "\n"
-
-    # HTML 邮件表头
+    # HTML 头部
     report_html = f"""
     <html>
     <head>
         <style>
-            body {{
-                font-family: Arial, sans-serif;
-            }}
-            table {{
-                width: 100%;
-                border-collapse: collapse;
-            }}
-            th, td {{
-                padding: 8px;
-                text-align: center;
-                border-bottom: 1px solid #ddd;
-            }}
-            th {{
-                background-color: #f4f4f4;
-            }}
-            .positive {{
-                color: red;
-            }}
-            .negative {{
-                color: green;
-            }}
+            body {{ font-family: Arial, sans-serif; }}
+            table {{ width: 100%; border-collapse: collapse; }}
+            th, td {{ padding: 8px; text-align: center; border-bottom: 1px solid #ddd; }}
+            th {{ background-color: #f4f4f4; }}
+            .positive {{ color: red; }}
+            .negative {{ color: green; }}
         </style>
     </head>
     <body>
@@ -89,63 +67,53 @@ def fetch_stock_data():
             </tr>
     """
 
-    try:
-        for index, row in stock_list.iterrows():
-            ticker = row['Ticker']
-            title = row['Title']
-            target_price = row['Target Price']
-            stock_type = row['Type'].strip().lower()  # 读取 "Stock" 或 "Forex"
+    for index, row in stock_list.iterrows():
+        ticker = row['Ticker']
+        title = row['Title']
+        target_price = row['Target Price']
+        stock_type = row['Type'].strip().lower()  # 读取 "Stock" 或 "Forex"
 
-            stock = yf.Ticker(ticker)
-            stock_info = stock.info
-            currency = stock_info.get("currency", "N/A")
+        stock = yf.Ticker(ticker)
+        stock_info = stock.info
+        currency = stock_info.get("currency", "N/A")
 
-            # 获取收盘价
-            latest_close = stock.history(period="1d")["Close"].iloc[-1]
-            latest_close_str = f"{latest_close:.2f} {currency}"
+        # 收盘价
+        latest_close = stock_info.get("regularMarketPrice", 0)
+        latest_close_str = f"{latest_close:.2f} {currency}"
 
-            if stock_type == "stock":
-                # 直接获取 Yahoo Finance 提供的涨跌幅
-                one_day_change = stock_info.get("regularMarketChangePercent", 0)
-                one_week_change = stock_info.get("52WeekChange", 0)  # Yahoo 没有 7 天的涨跌幅，这里暂时用 52 周变化
-                one_month_change = stock_info.get("fiftyDayAverageChangePercent", 0)
-                three_month_change = stock_info.get("twoHundredDayAverageChangePercent", 0)
-            else:
-                # 仍然手动计算 Forex（货币对）
-                hist = stock.history(period="3mo")  
-                if len(hist) < 2:
-                    print(f"⚠️ 无法获取 {ticker} 的数据")
-                    continue
+        # 直接从 Yahoo Finance 获取数据
+        one_day_change = stock_info.get("regularMarketChangePercent", 0)
 
-                hist.index = hist.index.tz_localize(None)  # 移除时区
-                one_day_change = ((latest_close - hist['Close'].iloc[-2]) / hist['Close'].iloc[-2]) * 100 if len(hist) > 1 else 0
-                one_week_change = ((latest_close - hist['Close'].iloc[-6]) / hist['Close'].iloc[-6]) * 100 if len(hist) > 6 else 0
-                one_month_change = ((latest_close - hist['Close'].iloc[0]) / hist['Close'].iloc[0]) * 100 if len(hist) > 20 else 0
-                three_month_change = ((latest_close - hist['Close'].iloc[0]) / hist['Close'].iloc[0]) * 100 if len(hist) > 60 else 0
+        # 计算 1 周、1 个月、3 个月涨跌幅
+        def calculate_change(history_data, period):
+            if len(history_data) > period:
+                old_price = history_data["Close"].iloc[0]
+                return ((latest_close - old_price) / old_price) * 100
+            return 0
 
-            # 颜色处理
-            def color_class(value):
-                return "positive" if value > 0 else "negative"
+        one_week_change = calculate_change(stock.history(period="7d"), 7)
+        one_month_change = calculate_change(stock.history(period="1mo"), 20)  # 大约20个交易日
+        if stock_type == "stock":
+            three_month_change = stock_info.get("fiftyDayAverageChangePercent", 0)  # 股票指数用 Yahoo Finance 数据
+        else:
+            three_month_change = calculate_change(stock.history(period="3mo"), 60)  # 货币对计算 3 个月涨跌幅
 
-            # 纯文本格式
-            report_text += f"{title:<12} {latest_close_str:<12} {target_price:>8.2f} {one_day_change:>8.2f}% {one_week_change:>8.2f}% {one_month_change:>8.2f}% {three_month_change:>8.2f}%\n"
+        # 颜色
+        def color_class(value):
+            return "positive" if value > 0 else "negative"
 
-            # HTML 格式
-            report_html += f"""
-            <tr>
-                <td>{title}</td>
-                <td>{latest_close_str}</td>
-                <td>{target_price:.2f}</td>
-                <td class="{color_class(one_day_change)}">{one_day_change:.2f}%</td>
-                <td class="{color_class(one_week_change)}">{one_week_change:.2f}%</td>
-                <td class="{color_class(one_month_change)}">{one_month_change:.2f}%</td>
-                <td class="{color_class(three_month_change)}">{three_month_change:.2f}%</td>
-            </tr>
-            """
-
-    except Exception as e:
-        report_text += f"\n❌ 数据获取出错: {e}"
-        report_html += f"<tr><td colspan='7'>❌ 数据获取出错: {e}</td></tr>"
+        # HTML
+        report_html += f"""
+        <tr>
+            <td>{title}</td>
+            <td>{latest_close_str}</td>
+            <td>{target_price:.2f}</td>
+            <td class="{color_class(one_day_change)}">{one_day_change:.2f}%</td>
+            <td class="{color_class(one_week_change)}">{one_week_change:.2f}%</td>
+            <td class="{color_class(one_month_change)}">{one_month_change:.2f}%</td>
+            <td class="{color_class(three_month_change)}">{three_month_change:.2f}%</td>
+        </tr>
+        """
 
     report_html += """
         </table>
@@ -153,10 +121,10 @@ def fetch_stock_data():
     </html>
     """
 
-    return report_text, report_html
+    return report_html
 
 if __name__ == "__main__":
     print("🚀 开始收集股票数据并发送邮件...")
-    stock_report_text, stock_report_html = fetch_stock_data()
+    stock_report_html = fetch_stock_data()
     subject = f"📈 每日股票市场报告 - {datetime.now().strftime('%Y-%m-%d')}"
-    send_email(subject, stock_report_text, stock_report_html)
+    send_email(subject, "请查看 HTML 邮件", stock_report_html)
