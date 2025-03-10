@@ -68,7 +68,7 @@ def fetch_stock_data():
             </tr>
     """
 
-    hidden_data = "<div class='hidden-data'><h3>📊 数据调试信息（隐藏）</h3>"
+    hidden_data = "<div><h3>📊 数据调试信息（隐藏）</h3>"
 
     for index, row in stock_list.iterrows():
         ticker = row['Ticker']
