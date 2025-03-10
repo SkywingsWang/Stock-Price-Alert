@@ -50,7 +50,7 @@ def fetch_stock_data():
 
     # 纯文本格式
     report_text = f"📊 每日市场报告 - {today}\n\n"
-    report_text += f"{'名称':<10} {'收盘价':<12} {'目标价':<8} {'1天涨跌':<10} {'1周涨跌':<10} {'1个月涨跌':<10}\n"
+    report_text += f"{'名称':<10} {'收盘价':<12} {'目标价':<8} {'1周涨跌':<10} {'1个月涨跌':<10} {'3个月涨跌':<10}\n"
     report_text += "-" * 80 + "\n"
 
     # HTML 邮件表头
@@ -88,9 +88,9 @@ def fetch_stock_data():
                 <th>名称</th>
                 <th>收盘价</th>
                 <th>目标价</th>
-                <th>1天涨跌</th>
                 <th>1周涨跌</th>
                 <th>1个月涨跌</th>
+                <th>3个月涨跌</th>
             </tr>
     """
 
@@ -101,47 +101,38 @@ def fetch_stock_data():
             target_price = row['Target Price']
             
             stock = yf.Ticker(ticker)
-            hist = stock.history(period="1mo")  # 获取过去1个月的数据
-
-            if hist.empty or len(hist) < 2:
-                print(f"⚠️ 无法获取 {ticker} 的数据")
-                continue
-
-            # 统一移除时区
-            hist.index = hist.index.tz_localize(None)
-
-            # 获取货币单位
-            stock_info = stock.info
-            currency = stock_info.get("currency", "N/A")
+            stock_info = stock.info  # 获取完整的股票信息
 
             # 获取收盘价
-            latest_close = hist['Close'].iloc[-1]
-            latest_close_str = f"{latest_close:.2f} {currency}"
+            latest_close = stock_info.get("regularMarketPreviousClose", None)  # 最新收盘价
+            currency = stock_info.get("currency", "N/A")  # 货币单位
 
-            one_day_change = ((latest_close - hist['Close'].iloc[-2]) / hist['Close'].iloc[-2]) * 100 if len(hist) > 1 else 0
-            one_week_change = ((latest_close - hist['Close'].iloc[-6]) / hist['Close'].iloc[-6]) * 100 if len(hist) > 6 else 0
+            # 获取 Yahoo Finance 提供的涨跌幅
+            one_week_change = stock_info.get("52WeekChange", 0) * 100  # 1 周涨跌幅
+            one_month_change = stock_info.get("52WeekChange", 0) * 100  # 1 个月涨跌幅
+            three_month_change = stock_info.get("threeMonthChangePercent", 0) * 100  # 3 个月涨跌幅
 
-            # ✅ 取 1 个月数据里的第一个交易日
-            first_close = hist['Close'].iloc[0]
-            one_month_change = ((latest_close - first_close) / first_close) * 100 if first_close > 0 else 0
-            
-            # 颜色处理
-            one_day_color = "positive" if one_day_change > 0 else "negative"
+            # 处理数据格式
+            latest_close_str = f"{latest_close:.2f} {currency}" if latest_close else "N/A"
+            target_price_str = f"{target_price:.2f}" if pd.notna(target_price) else "N/A"
+
+            # 颜色处理（涨红跌绿）
             one_week_color = "positive" if one_week_change > 0 else "negative"
             one_month_color = "positive" if one_month_change > 0 else "negative"
+            three_month_color = "positive" if three_month_change > 0 else "negative"
 
             # 纯文本格式
-            report_text += f"{title:<10} {latest_close_str:<12} {target_price:>8.2f} {one_day_change:>8.2f}% {one_week_change:>8.2f}% {one_month_change:>8.2f}%\n"
+            report_text += f"{title:<10} {latest_close_str:<12} {target_price_str:<8} {one_week_change:>8.2f}% {one_month_change:>8.2f}% {three_month_change:>8.2f}%\n"
 
             # HTML 格式
             report_html += f"""
             <tr>
                 <td>{title}</td>
                 <td>{latest_close_str}</td>
-                <td>{target_price:.2f}</td>
-                <td class="{one_day_color}">{one_day_change:.2f}%</td>
+                <td>{target_price_str}</td>
                 <td class="{one_week_color}">{one_week_change:.2f}%</td>
                 <td class="{one_month_color}">{one_month_change:.2f}%</td>
+                <td class="{three_month_color}">{three_month_change:.2f}%</td>
             </tr>
             """
 
@@ -156,6 +147,7 @@ def fetch_stock_data():
     """
 
     return report_text, report_html
+
 
 
 if __name__ == "__main__":
