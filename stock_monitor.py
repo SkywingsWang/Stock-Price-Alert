@@ -4,6 +4,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import pandas as pd
 import os
+from datetime import datetime
 
 # Email Settings
 EMAIL_ADDRESS = os.getenv("EMAIL_ADDRESS")
@@ -39,9 +40,10 @@ def send_email(subject, body):
         raise  # 终止任务
 
 def fetch_stock_data():
-    report = "📊 **每日股票市场报告**\n\n"
-    report += "Ticker | 收盘价 | 1天涨跌幅 | 1周涨跌幅 | 1个月涨跌幅\n"
-    report += "------------------------------------------------\n"
+    today = datetime.now().strftime("%Y-%m-%d")  # 获取今天的日期
+    report = f"📊 **每日股票市场报告 - {today}**\n\n"
+    report += "Ticker | 货币 | 收盘价 | 1天涨跌幅 | 1周涨跌幅 | 1个月涨跌幅\n"
+    report += "------------------------------------------------------\n"
 
     try:
         for index, row in stock_list.iterrows():
@@ -54,13 +56,21 @@ def fetch_stock_data():
                 print(f"⚠️ 无法获取 {ticker} 的数据")
                 continue
             
+            # 获取货币单位
+            stock_info = stock.info
+            currency = stock_info.get("currency", "N/A")  # 获取货币单位
+            
             # 获取收盘价
             latest_close = hist['Close'].iloc[-1]
             one_day_change = ((latest_close - hist['Close'].iloc[-2]) / hist['Close'].iloc[-2]) * 100 if len(hist) > 1 else 0
             one_week_change = ((latest_close - hist['Close'].iloc[-6]) / hist['Close'].iloc[-6]) * 100 if len(hist) > 6 else 0
-            one_month_change = ((latest_close - hist['Close'].iloc[0]) / hist['Close'].iloc[0]) * 100 if len(hist) > 20 else 0
             
-            report += f"{ticker} | {latest_close:.2f} | {one_day_change:.2f}% | {one_week_change:.2f}% | {one_month_change:.2f}%\n"
+            # 修正1个月涨跌幅的计算方式
+            first_day_of_month = hist.index[0]  # 获取数据的第一个交易日
+            first_close = hist.loc[first_day_of_month, "Close"]
+            one_month_change = ((latest_close - first_close) / first_close) * 100 if first_close else 0
+            
+            report += f"{ticker} | {currency} | {latest_close:.2f} {currency} | {one_day_change:.2f}% | {one_week_change:.2f}% | {one_month_change:.2f}%\n"
 
     except Exception as e:
         report += f"\n❌ 数据获取出错: {e}"
@@ -70,4 +80,5 @@ def fetch_stock_data():
 if __name__ == "__main__":
     print("🚀 开始收集股票数据并发送邮件...")
     stock_report = fetch_stock_data()
-    send_email("📈 每日股票市场报告", stock_report)
+    subject = f"📈 每日股票市场报告 - {datetime.now().strftime('%Y-%m-%d')}"
+    send_email(subject, stock_report)
