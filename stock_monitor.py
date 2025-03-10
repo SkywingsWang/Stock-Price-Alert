@@ -70,8 +70,13 @@ def fetch_stock_data():
     for index, row in stock_list.iterrows():
         ticker = row['Ticker']
         title = row['Title']
-        target_price = row['Target Price']
         stockcharts_ticker = row['StockCharts Ticker']
+
+        try:
+            target_price = float(row['Target Price'])
+            target_price_str = f"{target_price:.2f}"
+        except ValueError:
+            target_price_str = "N/A"
 
         stock = yf.Ticker(ticker)
         stock_info = stock.info
@@ -108,7 +113,7 @@ def fetch_stock_data():
         <tr>
             <td>{title}</td>
             <td>{latest_close_str}</td>
-            <td>{target_price:.2f}</td>
+            <td>{target_price_str}</td>
             <td class="{color_class(one_day_change)}"><b>{one_day_change:.2f}%</b></td>
             <td class="{color_class(one_week_change)}">{one_week_change:.2f}%</td>
             <td class="{color_class(one_month_change)}">{one_month_change:.2f}%</td>
@@ -125,24 +130,10 @@ def fetch_stock_data():
     for index, row in stock_list.iterrows():
         stockcharts_ticker = row['StockCharts Ticker']
         title = row['Title']
-        if stockcharts_ticker != "N/A":
+        if pd.notna(stockcharts_ticker):
             chart_url = f"https://stockcharts.com/c-sc/sc?s={stockcharts_ticker}&p=D&b=40&g=0&i=0"
             report_html += f"""
             <div style="text-align: center; margin: 20px 0;">
                 <h4>{title} ({stockcharts_ticker})</h4>
                 <img src="{chart_url}" alt="{title} Chart" style="width: 80%; max-width: 800px;">
             </div>
-            """
-
-    report_html += """
-    </body>
-    </html>
-    """
-    
-    return report_html
-
-if __name__ == "__main__":
-    print("🚀 开始收集股票数据并发送邮件...")
-    stock_report_html = fetch_stock_data()
-    subject = f"📈 每日股票市场报告 - {datetime.now().strftime('%Y-%m-%d')}"
-    send_email(subject, "请查看 HTML 邮件", stock_report_html)
