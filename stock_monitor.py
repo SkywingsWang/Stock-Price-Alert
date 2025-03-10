@@ -140,7 +140,7 @@ def fetch_stock_data():
             report_html += f"""
             <div style="text-align: center; margin: 20px 0;">
                 <h4>{title} ({stockcharts_ticker})</h4>
-                <img src="{chart_url}" alt="{title} Chart" style="width: 80%; max-width: 800px;">
+                <img src="{chart_url}" alt="{title} Chart" style="width: 80%; max-width: 800px; display: block; margin: auto;">
             </div>
             """
 
