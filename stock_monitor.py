@@ -1,7 +1,7 @@
 import yfinance as yf
 import smtplib
 from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+from email.multipart import MIMEMultipart
 import pandas as pd
 import os
 from datetime import datetime
@@ -68,13 +68,12 @@ def fetch_stock_data():
             </tr>
     """
 
-    hidden_data = "<div><h3>📊 数据调试信息（隐藏）</h3>"
+    hidden_data = "<div class='hidden-data'><h3>📊 数据调试信息（隐藏）</h3>"
 
     for index, row in stock_list.iterrows():
         ticker = row['Ticker']
         title = row['Title']
         target_price = row['Target Price']
-        stock_type = row['Type'].strip().lower()
 
         stock = yf.Ticker(ticker)
         stock_info = stock.info
@@ -87,7 +86,7 @@ def fetch_stock_data():
         # 直接从 Yahoo Finance 获取 1 天涨跌幅
         one_day_change = stock_info.get("regularMarketChangePercent", 0)
 
-        # 计算 1 周、1 个月、3 个月涨跌幅
+        # 计算 1 周、1 个月、3 个月涨跌幅（对股票 & 货币统一计算逻辑）
         def calculate_change(hist, period_name):
             if not hist.empty:
                 first_valid_date = hist.first_valid_index()
@@ -103,11 +102,7 @@ def fetch_stock_data():
 
         one_week_change = calculate_change(hist_7d, "7d")
         one_month_change = calculate_change(hist_1mo, "1mo")
-
-        if stock_type == "stock":
-            three_month_change = stock_info.get("fiftyDayAverageChangePercent", 0)  # 股票指数用 Yahoo Finance 数据
-        else:
-            three_month_change = calculate_change(hist_3mo, "3mo")  # 货币对计算 3 个月涨跌幅
+        three_month_change = calculate_change(hist_3mo, "3mo")  # ✅ 3 个月计算方式统一
 
         # 颜色
         def color_class(value):
