@@ -108,7 +108,7 @@ def fetch_stock_data():
         <tr>
             <td>{title}</td>
             <td>{latest_close_str}</td>
-            <td>{target_price}</td>
+            <td>{target_price:.2f}</td>
             <td class="{color_class(one_day_change)}"><b>{one_day_change:.2f}%</b></td>
             <td class="{color_class(one_week_change)}">{one_week_change:.2f}%</td>
             <td class="{color_class(one_month_change)}">{one_month_change:.2f}%</td>
@@ -121,11 +121,12 @@ def fetch_stock_data():
         <h3>📈 市场趋势图</h3>
     """
 
-    # ✅ **修正 URL，确保正确使用 `StockCharts Ticker`**
+    # ✅ **正确使用 `StockCharts Ticker` 生成 URL**
     for index, row in stock_list.iterrows():
         stockcharts_ticker = row['StockCharts Ticker']
         title = row['Title']
-        if pd.notna(stockcharts_ticker) and stockcharts_ticker != "N/A":
+        
+        if stockcharts_ticker and stockcharts_ticker != "N/A":
             chart_url = f"https://stockcharts.com/c-sc/sc?s={stockcharts_ticker}&p=D&b=40&g=0&i=0"
             report_html += f"""
             <div style="text-align: center; margin: 20px 0;">
