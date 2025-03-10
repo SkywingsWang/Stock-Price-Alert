@@ -31,14 +31,20 @@ def send_email(subject, body, body_html):
 
     # 嵌入图片
     for index, row in stock_list.iterrows():
-        stockcharts_ticker = row['StockCharts Ticker']
-        if stockcharts_ticker and stockcharts_ticker != "N/A":
-            chart_url = f"https://stockcharts.com/c-sc/sc?s={stockcharts_ticker}&p=D&b=40&g=0&i=0"
+    stockcharts_ticker = row['StockCharts Ticker']
+    if stockcharts_ticker and stockcharts_ticker != "N/A":
+        chart_url = f"https://stockcharts.com/c-sc/sc?s={stockcharts_ticker}&p=D&b=40&g=0&i=0"
+        try:
             response = requests.get(chart_url)
             if response.status_code == 200:
+                print(f"✅ 成功下载图片: {stockcharts_ticker}")
                 img = MIMEImage(response.content)
                 img.add_header('Content-ID', f'<{stockcharts_ticker}>')
                 msg.attach(img)
+            else:
+                print(f"❌ 下载图片失败: {stockcharts_ticker}, 状态码: {response.status_code}")
+        except Exception as e:
+            print(f"❌ 下载图片时出错: {stockcharts_ticker}, 错误: {e}")
 
     try:
         with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
