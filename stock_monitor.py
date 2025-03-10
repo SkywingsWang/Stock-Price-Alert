@@ -52,7 +52,12 @@ def fetch_stock_data():
     today = datetime.now().strftime("%Y-%m-%d")  # 获取今天的日期
 
     # 获取 30 天前的日期
-    one_month_ago = datetime.today() - timedelta(days=30)  # ✅ 正确使用 timedelta
+    one_month_ago = datetime.today() - timedelta(days=30)
+
+    # 纯文本格式
+    report_text = f"📊 每日市场报告 - {today}\n\n"
+    report_text += f"{'名称':<10} {'收盘价':<12} {'目标价':<8} {'1天涨跌':<10} {'1周涨跌':<10} {'1个月涨跌':<10}\n"
+    report_text += "-" * 80 + "\n"
 
     # HTML 邮件表头
     report_html = f"""
@@ -102,7 +107,7 @@ def fetch_stock_data():
             target_price = row['Target Price']
             
             stock = yf.Ticker(ticker)
-            hist = stock.history(period="1mo")  # 获取过去1个月的数据
+            hist = stock.history(period="1mo")
             
             if hist.empty or len(hist) < 2:
                 print(f"⚠️ 无法获取 {ticker} 的数据")
@@ -110,29 +115,32 @@ def fetch_stock_data():
             
             # 获取货币单位
             stock_info = stock.info
-            currency = stock_info.get("currency", "N/A")  # 获取货币单位
-            
+            currency = stock_info.get("currency", "N/A")
+
             # 获取收盘价
             latest_close = hist['Close'].iloc[-1]
-            latest_close_str = f"{latest_close:.2f} {currency}"  # 让收盘价包含货币单位
+            latest_close_str = f"{latest_close:.2f} {currency}"
 
             one_day_change = ((latest_close - hist['Close'].iloc[-2]) / hist['Close'].iloc[-2]) * 100 if len(hist) > 1 else 0
             one_week_change = ((latest_close - hist['Close'].iloc[-6]) / hist['Close'].iloc[-6]) * 100 if len(hist) > 6 else 0
-            
-            # 修正1个月涨跌幅的计算方式
-            hist_one_month = hist[hist.index <= one_month_ago]  # ✅ 取 30 天前的最近交易日
+
+            # 修正 1 个月涨跌幅
+            hist_one_month = hist[hist.index <= one_month_ago]
             if not hist_one_month.empty:
-                first_close = hist_one_month['Close'].iloc[-1]  # 取 30 天前最近的交易日收盘价
+                first_close = hist_one_month['Close'].iloc[-1]
                 one_month_change = ((latest_close - first_close) / first_close) * 100
             else:
-                one_month_change = 0  # 如果没有数据，默认为 0
+                one_month_change = 0
             
-            # 颜色处理（上涨为红色，下降为绿色）
+            # 颜色处理
             one_day_color = "positive" if one_day_change > 0 else "negative"
             one_week_color = "positive" if one_week_change > 0 else "negative"
             one_month_color = "positive" if one_month_change > 0 else "negative"
 
-            # HTML 表格格式
+            # 纯文本格式
+            report_text += f"{title:<10} {latest_close_str:<12} {target_price:>8.2f} {one_day_change:>8.2f}% {one_week_change:>8.2f}% {one_month_change:>8.2f}%\n"
+
+            # HTML 格式
             report_html += f"""
             <tr>
                 <td>{title}</td>
@@ -145,6 +153,7 @@ def fetch_stock_data():
             """
 
     except Exception as e:
+        report_text += f"\n❌ 数据获取出错: {e}"
         report_html += f"<tr><td colspan='6'>❌ 数据获取出错: {e}</td></tr>"
 
     report_html += """
@@ -153,11 +162,13 @@ def fetch_stock_data():
     </html>
     """
 
-    return report_html
+    # ✅ 现在返回两个值：纯文本 和 HTML
+    return report_text, report_html
+
 
 
 if __name__ == "__main__":
     print("🚀 开始收集股票数据并发送邮件...")
-    stock_report_text, stock_report_html = fetch_stock_data()
+    stock_report_text, stock_report_html = fetch_stock_data()  # ✅ 这里解包两个返回值
     subject = f"📈 每日股票市场报告 - {datetime.now().strftime('%Y-%m-%d')}"
-    send_email(subject, stock_report_text, stock_report_html)
+    send_email(subject, stock_report_text, stock_report_html)  # ✅ 传入两个值
