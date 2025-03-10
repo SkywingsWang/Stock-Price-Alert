@@ -45,13 +45,12 @@ def fetch_stock_data():
     <html>
     <head>
         <style>
-            body {{ font-family: Arial, sans-serif; }}
+            body {{ font-family: Arial, sans-serif; font-size: 18px; }}
             table {{ width: 100%; border-collapse: collapse; }}
-            th, td {{ padding: 8px; text-align: center; border-bottom: 1px solid #ddd; }}
-            th {{ background-color: #f4f4f4; }}
-            .positive {{ color: red; }}
-            .negative {{ color: green; }}
-            .hidden-data {{ display: none; font-size: 10px; color: gray; }}
+            th, td {{ padding: 12px; text-align: center; border-bottom: 1px solid #ddd; }}
+            th {{ background-color: #f4f4f4; font-size: 20px; }}
+            .positive {{ color: red; font-weight: bold; }}
+            .negative {{ color: green; font-weight: bold; }}
         </style>
     </head>
     <body>
@@ -61,19 +60,18 @@ def fetch_stock_data():
                 <th>名称</th>
                 <th>收盘价</th>
                 <th>目标价</th>
-                <th>1天涨跌</th>
+                <th><b>1天涨跌</b></th>
                 <th>1周涨跌</th>
                 <th>1个月涨跌</th>
                 <th>3个月涨跌</th>
             </tr>
     """
-
-    hidden_data = "<div class='hidden-data'><h3>📊 数据调试信息（隐藏）</h3>"
-
+    
     for index, row in stock_list.iterrows():
         ticker = row['Ticker']
         title = row['Title']
         target_price = row['Target Price']
+        stockcharts_ticker = row['StockCharts Ticker']
 
         stock = yf.Ticker(ticker)
         stock_info = stock.info
@@ -86,8 +84,8 @@ def fetch_stock_data():
         # 直接从 Yahoo Finance 获取 1 天涨跌幅
         one_day_change = stock_info.get("regularMarketChangePercent", 0)
 
-        # 计算 1 周、1 个月、3 个月涨跌幅（对股票 & 货币统一计算逻辑）
-        def calculate_change(hist, period_name):
+        # 计算 1 周、1 个月、3 个月涨跌幅
+        def calculate_change(hist):
             if not hist.empty:
                 first_valid_date = hist.first_valid_index()
                 if first_valid_date is not None:
@@ -95,56 +93,52 @@ def fetch_stock_data():
                     return ((latest_close - first_close) / first_close) * 100
             return 0
 
-        # 获取历史数据
         hist_7d = stock.history(period="7d").asfreq('B')
         hist_1mo = stock.history(period="1mo").asfreq('B')
         hist_3mo = stock.history(period="3mo").asfreq('B')
 
-        one_week_change = calculate_change(hist_7d, "7d")
-        one_month_change = calculate_change(hist_1mo, "1mo")
-        three_month_change = calculate_change(hist_3mo, "3mo")  # ✅ 3 个月计算方式统一
+        one_week_change = calculate_change(hist_7d)
+        one_month_change = calculate_change(hist_1mo)
+        three_month_change = calculate_change(hist_3mo)
 
-        # 颜色
         def color_class(value):
             return "positive" if value > 0 else "negative"
 
-        # HTML
         report_html += f"""
         <tr>
             <td>{title}</td>
             <td>{latest_close_str}</td>
             <td>{target_price:.2f}</td>
-            <td class="{color_class(one_day_change)}">{one_day_change:.2f}%</td>
+            <td class="{color_class(one_day_change)}"><b>{one_day_change:.2f}%</b></td>
             <td class="{color_class(one_week_change)}">{one_week_change:.2f}%</td>
             <td class="{color_class(one_month_change)}">{one_month_change:.2f}%</td>
             <td class="{color_class(three_month_change)}">{three_month_change:.2f}%</td>
         </tr>
         """
-
-        # **隐藏调试数据**
-        hidden_data += f"""
-        <p><b>{title} ({ticker})</b></p>
-        <ul>
-            <li>最新收盘价: {latest_close_str}</li>
-            <li>1 天前收盘价: {hist_7d["Close"].iloc[-2] if len(hist_7d) > 1 else "N/A"}</li>
-            <li>7 天前收盘价: {hist_7d["Close"].iloc[0] if len(hist_7d) > 1 else "N/A"}</li>
-            <li>1 个月前收盘价: {hist_1mo["Close"].iloc[0] if len(hist_1mo) > 1 else "N/A"}</li>
-            <li>3 个月前收盘价: {hist_3mo["Close"].iloc[0] if len(hist_3mo) > 1 else "N/A"}</li>
-        </ul>
-        """
-
+    
     report_html += """
         </table>
+        <h3>📈 市场趋势图</h3>
     """
 
-    # **隐藏数据部分**
-    report_html += hidden_data + "</div>"
+    # 添加静态图表链接
+    for index, row in stock_list.iterrows():
+        stockcharts_ticker = row['StockCharts Ticker']
+        title = row['Title']
+        if stockcharts_ticker != "N/A":
+            chart_url = f"https://stockcharts.com/c-sc/sc?s={stockcharts_ticker}&p=D&b=40&g=0&i=0"
+            report_html += f"""
+            <div style="text-align: center; margin: 20px 0;">
+                <h4>{title} ({stockcharts_ticker})</h4>
+                <img src="{chart_url}" alt="{title} Chart" style="width: 80%; max-width: 800px;">
+            </div>
+            """
 
     report_html += """
     </body>
     </html>
     """
-
+    
     return report_html
 
 if __name__ == "__main__":
