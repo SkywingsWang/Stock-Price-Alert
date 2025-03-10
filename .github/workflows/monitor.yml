@@ -2,7 +2,7 @@ name: Stock Monitor
 
 on:
   schedule:
-    - cron: "0 22 * * *"  # 每天北京时间 6:00 AM 运行
+    - cron: "0 23 * * 2-6"  # 每周二至周六（UTC 23:00，对应北京时间 07:00 AM）运行
   workflow_dispatch:  # 允许手动触发
 
 jobs:
