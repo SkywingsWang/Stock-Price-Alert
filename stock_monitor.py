@@ -50,8 +50,8 @@ def fetch_stock_data():
         <style>
             body {{ font-family: Arial, sans-serif; }}
             table {{ width: 100%; border-collapse: collapse; margin-bottom: 30px; }}
-            th, td {{ padding: 15px; text-align: center; border-bottom: 1px solid #ddd; font-size: 26px; }}
-            th {{ background-color: #f4f4f4; font-size: 28px; }}
+            th, td {{ padding: 15px; text-align: center; border-bottom: 1px solid #ddd; font-size: 28px; }}
+            th {{ background-color: #f4f4f4; font-size: 30px; }}
             .positive {{ color: red; font-weight: bold; }}
             .negative {{ color: green; font-weight: bold; }}
             .chart-container {{ 
@@ -68,15 +68,15 @@ def fetch_stock_data():
             .chart-container .data {{ 
                 width: 40%; 
                 padding-left: 20px; 
-                font-size: 18px; 
+                font-size: 16px; 
             }}
             .data h4 {{ 
                 margin-top: 0; 
-                font-size: 20px; 
+                font-size: 18px; 
                 color: #333; 
             }}
             .data .one-day-change {{ 
-                font-size: 22px; 
+                font-size: 20px; 
                 font-weight: bold; 
                 margin-bottom: 10px; 
             }}
