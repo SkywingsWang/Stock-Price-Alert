@@ -29,13 +29,17 @@ def send_email(subject, body, body_html):
     msg.attach(MIMEText(body, "plain"))  # 纯文本
     msg.attach(MIMEText(body_html, "html"))  # HTML
 
-    # 嵌入图片（检查缩进！）
+    # 嵌入图片
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+    }
+
     for index, row in stock_list.iterrows():
         stockcharts_ticker = row['StockCharts Ticker']
         if stockcharts_ticker and stockcharts_ticker != "N/A":
             chart_url = f"https://stockcharts.com/c-sc/sc?s={stockcharts_ticker}&p=D&b=40&g=0&i=0"
             try:
-                response = requests.get(chart_url)
+                response = requests.get(chart_url, headers=headers)
                 if response.status_code == 200:
                     img = MIMEImage(response.content)
                     img.add_header('Content-ID', f'<{stockcharts_ticker}>')
