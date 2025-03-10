@@ -16,6 +16,11 @@ TO_EMAIL_ADDRESS = os.getenv("TO_EMAIL_ADDRESS")
 stock_list = pd.read_csv('stock_list.csv')  
 
 def send_email(subject, body):
+    print(f"🔍 发送邮件 - 主题: {subject}")
+    print(f"📧 发件人: {EMAIL_ADDRESS}")
+    print(f"📧 收件人: {TO_EMAIL_ADDRESS}")
+    print(f"📡 SMTP 服务器: {SMTP_SERVER}:{SMTP_PORT}")
+    
     msg = MIMEMultipart()
     msg['From'] = EMAIL_ADDRESS
     msg['To'] = TO_EMAIL_ADDRESS
