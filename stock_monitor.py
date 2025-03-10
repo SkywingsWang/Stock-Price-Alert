@@ -1,4 +1,4 @@
-import yfinance as yf
+import yfinance as yf 
 import smtplib
 import requests
 from email.mime.text import MIMEText
@@ -43,21 +43,22 @@ def send_email(subject, body, body_html):
 def fetch_stock_data():
     today = datetime.now().strftime("%Y-%m-%d")
 
+    # HTML 头部
     report_html = f"""
     <html>
     <head>
         <style>
             body {{ font-family: Arial, sans-serif; font-size: 18px; }}
             table {{ width: 100%; border-collapse: collapse; }}
-            th, td {{ padding: 15px; text-align: center; border-bottom: 1px solid #ddd; font-size: 22px; }}
-            th {{ background-color: #f4f4f4; font-size: 24px; }}
+            th, td {{ padding: 12px; text-align: center; border-bottom: 1px solid #ddd; font-size: 20px; }}
+            th {{ background-color: #f4f4f4; font-size: 22px; }}
             .positive {{ color: red; font-weight: bold; }}
             .negative {{ color: green; font-weight: bold; }}
-            .highlight {{ font-size: 28px; font-weight: bold; }}
-            .index-container {{ display: flex; align-items: center; margin-bottom: 30px; }}
-            .index-image {{ flex: 1; text-align: center; }}
-            .index-data {{ flex: 1; }}
-            .index-data table {{ width: 100%; border: none; }}
+            .chart-container {{ display: flex; align-items: center; margin: 20px 0; }}
+            .chart-container img {{ width: 50%; max-width: 600px; }}
+            .chart-container .data {{ width: 50%; padding-left: 20px; font-size: 18px; }}
+            .data h4 {{ margin-top: 0; }}
+            .data .one-day-change {{ font-size: 24px; font-weight: bold; }}
         </style>
     </head>
     <body>
@@ -74,65 +75,109 @@ def fetch_stock_data():
             </tr>
     """
     
-    stock_data = []
-    
     for index, row in stock_list.iterrows():
         ticker = row['Ticker']
         title = row['Title']
         stockcharts_ticker = row['StockCharts Ticker']
 
+        # 处理 target_price 为空的情况
+        target_price = row['Target Price']
+        try:
+            target_price = float(target_price) if target_price not in ["N/A", ""] else None
+        except ValueError:
+            target_price = None
+
         stock = yf.Ticker(ticker)
         stock_info = stock.info
         currency = stock_info.get("currency", "N/A")
 
+        # 收盘价
         latest_close = stock_info.get("regularMarketPrice", 0)
         latest_close_str = f"{latest_close:.2f} {currency}"
+
+        # 直接从 Yahoo Finance 获取 1 天涨跌幅
         one_day_change = stock_info.get("regularMarketChangePercent", 0)
+
+        # 计算 1 周、1 个月、3 个月涨跌幅
+        def calculate_change(hist):
+            if not hist.empty:
+                first_valid_date = hist.first_valid_index()
+                if first_valid_date is not None:
+                    first_close = hist.loc[first_valid_date, "Close"]
+                    return ((latest_close - first_close) / first_close) * 100
+            return 0
+
+        hist_7d = stock.history(period="7d").asfreq('B')
+        hist_1mo = stock.history(period="1mo").asfreq('B')
+        hist_3mo = stock.history(period="3mo").asfreq('B')
+
+        one_week_change = calculate_change(hist_7d)
+        one_month_change = calculate_change(hist_1mo)
+        three_month_change = calculate_change(hist_3mo)
 
         def color_class(value):
             return "positive" if value > 0 else "negative"
+
+        # 处理 target_price 为空的情况
+        target_price_str = f"{target_price:.2f}" if target_price is not None else "N/A"
 
         report_html += f"""
         <tr>
             <td>{title}</td>
             <td>{latest_close_str}</td>
-            <td>{row['Target Price']}</td>
-            <td class="{color_class(one_day_change)} highlight">{one_day_change:.2f}%</td>
+            <td>{target_price_str}</td>
+            <td class="{color_class(one_day_change)}"><b>{one_day_change:.2f}%</b></td>
+            <td class="{color_class(one_week_change)}">{one_week_change:.2f}%</td>
+            <td class="{color_class(one_month_change)}">{one_month_change:.2f}%</td>
+            <td class="{color_class(three_month_change)}">{three_month_change:.2f}%</td>
         </tr>
         """
-        
-        stock_data.append((title, stockcharts_ticker, latest_close_str, one_day_change))
     
-    report_html += "</table>"
-    report_html += "<h3>📈 市场趋势</h3>"
-    
-    headers = {"User-Agent": "Mozilla/5.0"}
+    report_html += """
+        </table>
+        <h3>📈 市场趋势图</h3>
+    """
 
-    for title, stockcharts_ticker, latest_close_str, one_day_change in stock_data:
+    # 使用 Base64 嵌入图片
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+    }
+
+    for index, row in stock_list.iterrows():
+        stockcharts_ticker = row['StockCharts Ticker']
+        title = row['Title']
+        
         if stockcharts_ticker and stockcharts_ticker != "N/A":
             chart_url = f"https://stockcharts.com/c-sc/sc?s={stockcharts_ticker}&p=D&b=40&g=0&i=0"
             try:
                 response = requests.get(chart_url, headers=headers)
                 if response.status_code == 200:
+                    # 将图片转换为 Base64
                     img_base64 = base64.b64encode(response.content).decode("utf-8")
                     report_html += f"""
-                    <div class="index-container">
-                        <div class="index-image">
-                            <img src="data:image/png;base64,{img_base64}" alt="{title} Chart" style="width: 90%; max-width: 800px;">
-                        </div>
-                        <div class="index-data">
+                    <div class="chart-container">
+                        <img src="data:image/png;base64,{img_base64}" alt="{title} Chart">
+                        <div class="data">
                             <h4>{title} ({stockcharts_ticker})</h4>
-                            <p>收盘价: {latest_close_str}</p>
-                            <p class="{color_class(one_day_change)} highlight">1天涨跌: {one_day_change:.2f}%</p>
+                            <p class="one-day-change {color_class(one_day_change)}">1天涨跌: {one_day_change:.2f}%</p>
+                            <p>1周涨跌: {one_week_change:.2f}%</p>
+                            <p>1个月涨跌: {one_month_change:.2f}%</p>
+                            <p>3个月涨跌: {three_month_change:.2f}%</p>
                         </div>
                     </div>
                     """
+                    print(f"✅ 图片嵌入成功: {stockcharts_ticker}")
+                else:
+                    print(f"❌ 图片下载失败: {stockcharts_ticker}, 状态码: {response.status_code}")
             except Exception as e:
-                print(f"❌ 图片下载失败: {stockcharts_ticker}, 错误: {e}")
-    
-    report_html += "</body></html>"
-    return report_html
+                print(f"❌ 图片下载时出错: {stockcharts_ticker}, 错误: {e}")
 
+    report_html += """
+    </body>
+    </html>
+    """
+    
+    return report_html
 
 if __name__ == "__main__":
     print("🚀 开始收集股票数据并发送邮件...")
