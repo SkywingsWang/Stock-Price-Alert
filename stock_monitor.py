@@ -1,3 +1,51 @@
+import yfinance as yf
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+import pandas as pd
+import os
+import datetime
+from datetime import datetime
+
+# Email Settings
+EMAIL_ADDRESS = os.getenv("EMAIL_ADDRESS")
+EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
+SMTP_SERVER = os.getenv("SMTP_SERVER")
+SMTP_PORT = int(os.getenv("SMTP_PORT"))
+TO_EMAIL_ADDRESS = os.getenv("TO_EMAIL_ADDRESS")
+
+# Read Stock Information CSV
+stock_list = pd.read_csv('stock_list.csv')
+
+def send_email(subject, body, body_html):
+    print(f"🔍 发送邮件 - 主题: {subject}")
+    print(f"📧 发件人: {EMAIL_ADDRESS}")
+    print(f"📧 收件人: {TO_EMAIL_ADDRESS}")
+    print(f"📡 SMTP 服务器: {SMTP_SERVER}:{SMTP_PORT}")
+
+    msg = MIMEMultipart("alternative")
+    msg['From'] = EMAIL_ADDRESS
+    msg['To'] = TO_EMAIL_ADDRESS
+    msg['Subject'] = subject
+
+    # 添加纯文本格式（备用）
+    text_part = MIMEText(body, "plain")
+    msg.attach(text_part)
+
+    # 添加 HTML 格式
+    html_part = MIMEText(body_html, "html")
+    msg.attach(html_part)
+
+    try:
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+            server.starttls()
+            server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
+            server.sendmail(EMAIL_ADDRESS, TO_EMAIL_ADDRESS, msg.as_string())
+        print("✅ 邮件发送成功")
+    except Exception as e:
+        print(f"❌ 邮件发送失败: {e}")
+        raise  # 终止任务
+
 from datetime import datetime, timedelta  # ✅ 直接导入 timedelta
 
 def fetch_stock_data():
@@ -106,3 +154,10 @@ def fetch_stock_data():
     """
 
     return report_html
+
+
+if __name__ == "__main__":
+    print("🚀 开始收集股票数据并发送邮件...")
+    stock_report_text, stock_report_html = fetch_stock_data()
+    subject = f"📈 每日股票市场报告 - {datetime.now().strftime('%Y-%m-%d')}"
+    send_email(subject, stock_report_text, stock_report_html)
