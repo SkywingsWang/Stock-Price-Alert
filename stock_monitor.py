@@ -1,7 +1,7 @@
 import yfinance as yf
 import smtplib
 from email.mime.text import MIMEText
-from email.multipart import MIMEMultipart
+from email.mime.multipart import MIMEMultipart 
 import pandas as pd
 import os
 from datetime import datetime
