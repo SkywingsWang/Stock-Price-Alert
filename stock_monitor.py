@@ -1,4 +1,23 @@
+import yfinance as yf
+import smtplib
+import requests
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.mime.image import MIMEImage
+import pandas as pd
+import os
+from datetime import datetime
 import base64
+
+# Email Settings
+EMAIL_ADDRESS = os.getenv("EMAIL_ADDRESS")
+EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
+SMTP_SERVER = os.getenv("SMTP_SERVER")
+SMTP_PORT = int(os.getenv("SMTP_PORT"))
+TO_EMAIL_ADDRESS = os.getenv("TO_EMAIL_ADDRESS")
+
+# Read Stock Information CSV
+stock_list = pd.read_csv('stock_list.csv')
 
 def send_email(subject, body, body_html):
     print(f"🔍 发送邮件 - 题目: {subject}")
@@ -148,3 +167,9 @@ def fetch_stock_data():
     """
     
     return report_html
+
+if __name__ == "__main__":
+    print("🚀 开始收集股票数据并发送邮件...")
+    stock_report_html = fetch_stock_data()
+    subject = f"📈 每日股票市场报告 - {datetime.now().strftime('%Y-%m-%d')}"
+    send_email(subject, "请查看 HTML 邮件", stock_report_html)
