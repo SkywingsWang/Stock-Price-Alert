@@ -127,17 +127,20 @@ def fetch_stock_data():
     """
 
     # 添加静态图表链接
-    for index, row in stock_list.iterrows():
-        stockcharts_ticker = row['StockCharts Ticker']
-        title = row['Title']
-        if stockcharts_ticker != "N/A":
-            chart_url = f"https://stockcharts.com/c-sc/sc?s={stockcharts_ticker}&p=D&b=40&g=0&i=0"
-            report_html += f"""
-            <div style="text-align: center; margin: 20px 0;">
-                <h4>{title} ({stockcharts_ticker})</h4>
-                <img src="{chart_url}" alt="{title} Chart" style="width: 80%; max-width: 800px;">
-            </div>
-            """
+for index, row in stock_list.iterrows():
+    stockcharts_ticker = row['StockCharts Ticker']
+    title = row['Title']
+    
+    # 只在 StockCharts Ticker 不是 "N/A" 时添加图表
+    if pd.notna(stockcharts_ticker) and stockcharts_ticker != "N/A":
+        chart_url = f"https://stockcharts.com/c-sc/sc?s={stockcharts_ticker}&p=D&b=40&g=0&i=0"
+        report_html += f"""
+        <div style="text-align: center; margin: 20px 0;">
+            <h4>{title} ({stockcharts_ticker})</h4>
+            <img src="{chart_url}" alt="{title} Chart" style="width: 80%; max-width: 800px;">
+        </div>
+        """
+
 
     report_html += """
     </body>
