@@ -1,9 +1,8 @@
-Ticker,Title,Target Price,Type,StockCharts Ticker
-^IXIC,纳斯达克,17000,Stock,$COMPQ
-GC=F,现货黄金,2800,Stock,$GOLD
-^STOXX50E,欧洲斯托克50,N/A,Stock,$STOXX50
-^GDAXI,德国DAX30,N/A,Stock,$DAX
-CNYJPY=X,人民币兑日元,N/A,Forex,N/A
-USDJPY=X,美元兑日元,N/A,Forex,$USDJPY
-USDCNY=X,美元对人民币,N/A,Forex,N/A
-ETH-USD,USDT以太坊,N/A,Forex,$USDTUSD
+Ticker,Threshold
+HOLO,100.0
+AMZN,-5.0
+META,-3.0
+MSFT,-5.0
+NFLX,-5.0
+NVDA,-5.0
+TSLA,-5.0
